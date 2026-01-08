@@ -312,10 +312,73 @@ const deleteArticle = async (req, res) => {
   }
 };
 
+/**
+ * Get all problems with optional tag filtering
+ */
+const getProblems = async (req, res) => {
+  try {
+    const { tag } = req.query;
+
+    // Build filter object
+    const filter = {};
+    if (tag) filter.tags = tag;
+
+    const problems = await Problem.find(filter)
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      data: problems,
+      error: null
+    });
+  } catch (err) {
+    res.status(500).json({
+      data: null,
+      error: err.message
+    });
+  }
+};
+
+/**
+ * Get single problem by ID
+ */
+const getProblemById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        data: null,
+        error: 'Invalid problem ID format'
+      });
+    }
+
+    const problem = await Problem.findById(id);
+
+    if (!problem) {
+      return res.status(404).json({
+        data: null,
+        error: 'Problem not found'
+      });
+    }
+
+    res.status(200).json({
+      data: problem,
+      error: null
+    });
+  } catch (err) {
+    res.status(500).json({
+      data: null,
+      error: err.message
+    });
+  }
+};
+
 module.exports = {
   createArticle,
   getArticles,
   getArticleById,
   updateArticle,
-  deleteArticle
+  deleteArticle,
+  getProblems,
+  getProblemById
 };

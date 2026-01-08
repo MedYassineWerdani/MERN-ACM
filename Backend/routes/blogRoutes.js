@@ -5,7 +5,9 @@ const {
   getArticles,
   getArticleById,
   updateArticle,
-  deleteArticle
+  deleteArticle,
+  getProblems,
+  getProblemById
 } = require('../controllers/blogController');
 const auth = require('../middlewares/auth');
 const allowRoles = require('../middlewares/roles');
@@ -18,10 +20,20 @@ const allowRoles = require('../middlewares/roles');
  * GET    /blogs/:id        -> getArticleById (all authenticated users)
  * PUT    /blogs/:id        -> updateArticle (author/owner only)
  * DELETE /blogs/:id        -> deleteArticle (author/owner only)
+ * GET    /problems         -> getProblems (all authenticated users, with tag filter)
+ * GET    /problems/:id     -> getProblemById (all authenticated users)
  */
 
+// Articles
 // Create article (managers only)
 router.post('/', auth, allowRoles('manager'), createArticle);
+
+// Problems (must come before /:id to avoid route conflicts)
+// Get all problems with optional tag filter (authenticated users)
+router.get('/problems', auth, getProblems);
+
+// Get problem by ID (authenticated users)
+router.get('/problems/:id', auth, getProblemById);
 
 // Get all articles (authenticated users)
 router.get('/', auth, getArticles);

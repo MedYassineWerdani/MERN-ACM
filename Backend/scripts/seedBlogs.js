@@ -64,7 +64,8 @@ You can return the answer in any order.`,
           input: 'nums = [3,2,4], target = 6',
           output: '[1,2]'
         }
-      ]
+      ],
+      tags: ['two-pointers', 'hash-map', 'array', 'easy']
     });
 
     await problem.save();
@@ -207,6 +208,7 @@ Choose based on your problem requirements. Both are essential in a competitive p
     console.log(`Time Limit: ${problem.timeLimit}ms`);
     console.log(`Memory Limit: ${problem.memoryLimit}MB`);
     console.log(`Examples: ${problem.examples.length}`);
+    console.log(`Tags: ${problem.tags.join(', ')}`);
 
     console.log('\n✨ Database seeding completed successfully!');
     console.log('🚀 Start the server and use the blog endpoints to test!');

@@ -22,7 +22,17 @@ const login = async (req, res) => {
       { expiresIn: '7d' }
     );
 
-    res.json({ token });
+    // Return token and user data
+    res.json({ 
+      token,
+      user: {
+        _id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        handle: user.handle,
+        role: user.role
+      }
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

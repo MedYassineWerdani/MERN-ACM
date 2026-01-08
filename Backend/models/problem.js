@@ -32,6 +32,10 @@ const problemSchema = new mongoose.Schema({
     required: true // Problem description
   },
   examples: [exampleSchema],
+  tags: {
+    type: [String],
+    default: []
+  },
   createdAt: {
     type: Date,
     default: Date.now

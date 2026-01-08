@@ -75,9 +75,7 @@ const getAllEvents = async (req, res) => {
       .populate('discussions.author', 'fullName handle');
 
     res.json({
-      message: 'Events retrieved successfully',
-      count: events.length,
-      events: events.map(e => sanitizeEvent(e))
+      data: events.map(e => sanitizeEvent(e))
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

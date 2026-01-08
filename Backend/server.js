@@ -3,6 +3,7 @@ require('dotenv').config();
 
 const express = require('express');
 const connectDB = require('./config/db');
+const corsMiddleware = require('./config/cors');
 const User = require('./models/user');
 const OWNER = require('./config/owner');
 
@@ -14,6 +15,9 @@ const blogRoutes = require('./routes/blogRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Apply CORS middleware
+app.use(corsMiddleware);
 
 app.use(express.json());
 

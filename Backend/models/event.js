@@ -53,7 +53,7 @@ const eventSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['online', 'in-house'],
+    enum: ['online', 'in-house','extra'],
     default: 'in-house'
   },
   registeredUsers: [{
