@@ -2,7 +2,7 @@ const Article = require('../models/article');
 const User = require('../models/user');
 const Problem = require('../models/problem');
 const Event = require('../models/event');
-const sanitizeUser = require('../services/sanitizeUser');
+const { sanitizeUser } = require('../services/sanitizeUser');
 const mongoose = require('mongoose');
 
 /**

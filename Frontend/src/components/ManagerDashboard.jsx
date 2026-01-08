@@ -11,6 +11,11 @@ function ManagerDashboard({ user, onLogout }) {
   const [showCreateProblem, setShowCreateProblem] = useState(false);
   const [showGenerateCode, setShowGenerateCode] = useState(false);
   const [generatedCode, setGeneratedCode] = useState('');
+  const [selectedArticle, setSelectedArticle] = useState(null);
+  const [selectedProblem, setSelectedProblem] = useState(null);
+  const [showProfile, setShowProfile] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
 
   const [newPost, setNewPost] = useState({
     title: '',
@@ -60,25 +65,78 @@ function ManagerDashboard({ user, onLogout }) {
 
   const handleCreatePost = async () => {
     if (!newPost.title.trim() || !newPost.content.trim()) {
-      alert('Please fill in title and content');
+      setMessage('Please fill in title and content');
       return;
     }
-    // TODO: Implement API call to create article
-    alert('Article created! (API integration needed)');
-    setNewPost({ title: '', content: '', tags: '' });
-    setShowCreatePost(false);
-    fetchData();
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:3000/api/blogs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title: newPost.title.trim(),
+          content: newPost.content.trim(),
+          tags: newPost.tags.split(',').map(t => t.trim()).filter(t => t)
+        })
+      });
+      const data = await response.json();
+      if (data.data) {
+        setMessage('✅ Article created successfully!');
+        setNewPost({ title: '', content: '', tags: '' });
+        setShowCreatePost(false);
+        setTimeout(() => setMessage(''), 3000);
+        fetchData();
+      } else {
+        setMessage('❌ ' + (data.error || 'Failed to create article'));
+      }
+    } catch (err) {
+      setMessage('❌ Error: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCreateProblem = async () => {
     if (!newProblem.title.trim() || !newProblem.statement.trim()) {
-      alert('Please fill in title and statement');
+      setMessage('Please fill in title and statement');
       return;
     }
-    // TODO: Implement API call to create problem
-    alert('Problem created! (API integration needed)');
-    setNewProblem({ title: '', timeLimit: '', memoryLimit: '', statement: '', tags: '' });
-    setShowCreateProblem(false);
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:3000/api/blogs/problems', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title: newProblem.title.trim(),
+          timeLimit: parseInt(newProblem.timeLimit) || 1,
+          memoryLimit: parseInt(newProblem.memoryLimit) || 256,
+          statement: newProblem.statement.trim(),
+          tags: newProblem.tags.split(',').map(t => t.trim()).filter(t => t)
+        })
+      });
+      const data = await response.json();
+      if (data.data) {
+        setMessage('✅ Problem created successfully!');
+        setNewProblem({ title: '', timeLimit: '', memoryLimit: '', statement: '', tags: '' });
+        setShowCreateProblem(false);
+        setTimeout(() => setMessage(''), 3000);
+        fetchData();
+      } else {
+        setMessage('❌ ' + (data.error || 'Failed to create problem'));
+      }
+    } catch (err) {
+      setMessage('❌ Error: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
     fetchData();
   };
 
@@ -197,6 +255,20 @@ function ManagerDashboard({ user, onLogout }) {
           </button>
         </div>
       </header>
+
+      {/* Message Display */}
+      {message && (
+        <div style={{
+          padding: '12px 20px',
+          backgroundColor: message.includes('✅') ? '#dcfce7' : '#fee2e2',
+          color: message.includes('✅') ? '#166534' : '#991b1b',
+          textAlign: 'center',
+          fontSize: '14px',
+          borderBottom: '1px solid #e5e7eb'
+        }}>
+          {message}
+        </div>
+      )}
 
       {/* Main Content */}
       <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
@@ -530,12 +602,22 @@ function ManagerDashboard({ user, onLogout }) {
                 filteredArticles.map(article => (
                   <div
                     key={article._id}
+                    onClick={() => setSelectedArticle(article)}
                     style={{
                       padding: '12px',
                       border: '1px solid #e5e7eb',
                       borderRadius: '6px',
                       marginBottom: '10px',
-                      backgroundColor: '#fafafa'
+                      backgroundColor: '#fafafa',
+                      cursor: 'pointer'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#f3f4f6';
+                      e.currentTarget.style.borderColor = '#3b82f6';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#fafafa';
+                      e.currentTarget.style.borderColor = '#e5e7eb';
                     }}
                   >
                     <h4 style={{ margin: '0 0 6px 0', fontSize: '13px', color: '#1f2937' }}>
@@ -590,12 +672,23 @@ function ManagerDashboard({ user, onLogout }) {
               problems.map(problem => (
                 <div
                   key={problem._id}
+                  onClick={() => setSelectedProblem(problem)}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f0fdf4';
+                    e.currentTarget.style.borderColor = '#86efac';
+                    e.currentTarget.style.cursor = 'pointer';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#fafafa';
+                    e.currentTarget.style.borderColor = '#e5e7eb';
+                  }}
                   style={{
                     padding: '12px',
                     border: '1px solid #e5e7eb',
                     borderRadius: '6px',
                     marginBottom: '10px',
-                    backgroundColor: '#fafafa'
+                    backgroundColor: '#fafafa',
+                    transition: 'all 0.2s ease'
                   }}
                 >
                   <h4 style={{ margin: '0 0 6px 0', fontSize: '13px', color: '#1f2937' }}>
@@ -631,6 +724,202 @@ function ManagerDashboard({ user, onLogout }) {
           </div>
         </section>
       </main>
+
+      {/* Profile Modal */}
+      {showProfile && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            padding: '30px',
+            maxWidth: '500px',
+            width: '90%',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.2)'
+          }}>
+            <h2 style={{ margin: '0 0 20px 0', color: '#1f2937' }}>👤 My Profile</h2>
+            <div style={{ marginBottom: '15px' }}>
+              <p style={{ margin: '0 0 5px 0', color: '#6b7280', fontSize: '14px' }}>Full Name</p>
+              <p style={{ margin: 0, fontSize: '16px', color: '#1f2937', fontWeight: '600' }}>{user.fullName}</p>
+            </div>
+            <div style={{ marginBottom: '15px' }}>
+              <p style={{ margin: '0 0 5px 0', color: '#6b7280', fontSize: '14px' }}>Handle</p>
+              <p style={{ margin: 0, fontSize: '16px', color: '#1f2937', fontWeight: '600' }}>@{user.handle}</p>
+            </div>
+            <div style={{ marginBottom: '15px' }}>
+              <p style={{ margin: '0 0 5px 0', color: '#6b7280', fontSize: '14px' }}>Email</p>
+              <p style={{ margin: 0, fontSize: '16px', color: '#1f2937', fontWeight: '600' }}>{user.email}</p>
+            </div>
+            <div style={{ marginBottom: '20px' }}>
+              <p style={{ margin: '0 0 5px 0', color: '#6b7280', fontSize: '14px' }}>Role</p>
+              <p style={{ margin: 0, fontSize: '16px', color: '#1f2937', fontWeight: '600' }}>{user.role}</p>
+            </div>
+            <button
+              onClick={() => setShowProfile(false)}
+              style={{
+                padding: '10px 20px',
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600'
+              }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Article Modal */}
+      {selectedArticle && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000,
+          overflowY: 'auto',
+          padding: '20px'
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            padding: '30px',
+            maxWidth: '700px',
+            width: '100%',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+            margin: 'auto'
+          }}>
+            <h2 style={{ margin: '0 0 10px 0', color: '#1f2937' }}>{selectedArticle.title}</h2>
+            <p style={{ margin: '0 0 20px 0', fontSize: '13px', color: '#6b7280' }}>
+              By {selectedArticle.author?.fullName || 'Unknown'} • {new Date(selectedArticle.createdAt).toLocaleDateString()}
+            </p>
+            <div style={{ margin: '0 0 20px 0', fontSize: '15px', color: '#374151', lineHeight: '1.7' }}>
+              {selectedArticle.content}
+            </div>
+            {selectedArticle.tags && selectedArticle.tags.length > 0 && (
+              <div style={{ margin: '0 0 20px 0', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                {selectedArticle.tags.map(tag => (
+                  <span
+                    key={tag}
+                    style={{
+                      fontSize: '12px',
+                      padding: '4px 10px',
+                      backgroundColor: '#dbeafe',
+                      color: '#0369a1',
+                      borderRadius: '4px'
+                    }}
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+            <button
+              onClick={() => setSelectedArticle(null)}
+              style={{
+                padding: '10px 20px',
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600'
+              }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Problem Modal */}
+      {selectedProblem && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000,
+          overflowY: 'auto',
+          padding: '20px'
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            padding: '30px',
+            maxWidth: '700px',
+            width: '100%',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+            margin: 'auto'
+          }}>
+            <h2 style={{ margin: '0 0 15px 0', color: '#1f2937' }}>{selectedProblem.title}</h2>
+            <p style={{ margin: '0 0 20px 0', fontSize: '13px', color: '#6b7280' }}>
+              ⏱️ {selectedProblem.timeLimit}s • 💾 {selectedProblem.memoryLimit}MB
+            </p>
+            <div style={{ margin: '0 0 20px 0', fontSize: '15px', color: '#374151', lineHeight: '1.7', backgroundColor: '#f9fafb', padding: '15px', borderRadius: '6px' }}>
+              {selectedProblem.statement}
+            </div>
+            {selectedProblem.tags && selectedProblem.tags.length > 0 && (
+              <div style={{ margin: '0 0 20px 0', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                {selectedProblem.tags.map(tag => (
+                  <span
+                    key={tag}
+                    style={{
+                      fontSize: '12px',
+                      padding: '4px 10px',
+                      backgroundColor: '#d1fae5',
+                      color: '#065f46',
+                      borderRadius: '4px'
+                    }}
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+            <button
+              onClick={() => setSelectedProblem(null)}
+              style={{
+                padding: '10px 20px',
+                backgroundColor: '#10b981',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600'
+              }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
