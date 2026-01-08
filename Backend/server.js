@@ -10,6 +10,7 @@ const userRoutes = require('./routes/userRoutes');
 const sessionRoutes = require('./routes/sessionRoutes');
 const authRoutes = require('./routes/authRoutes');
 const eventRoutes = require('./routes/eventRoutes');
+const blogRoutes = require('./routes/blogRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -42,6 +43,7 @@ const startServer = async () => {
   app.use('/api/users', userRoutes);  // user CRUD routes
   app.use('/api/sessions', sessionRoutes); // session code / presence
   app.use('/api/events', eventRoutes); // events CRUD and discussions
+  app.use('/api/blogs', blogRoutes); // articles / blog posts
 
 
   app.listen(PORT, () => {
