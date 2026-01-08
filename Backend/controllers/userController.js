@@ -11,15 +11,24 @@ const createUser = async (req, res) => {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
-    // Role assignment rules
-    if (role && ['office', 'manager'].includes(role)) {
-      return res.status(403).json({ message: 'Only owner can assign office or manager roles' });
+    // Check if user already exists
+    const existingUser = await User.findOne({ $or: [{ email }, { handle }] });
+    if (existingUser) {
+      return res.status(409).json({ message: 'Email or handle already registered' });
     }
 
-    // Codeforces handle verification
-    const isValid = await verifyCodeforcesHandle(handle);
-    if (!isValid) {
-      return res.status(400).json({ message: 'Invalid Codeforces handle' });
+    // Role assignment rules: only members can self-register
+    // Owner/office/manager roles cannot be self-assigned
+    if (role && role !== 'member') {
+      return res.status(403).json({ message: 'Only owner can assign office/manager roles. Members self-register as member.' });
+    }
+
+    // Codeforces handle verification for non-test accounts
+    if (handle !== 'root') { // skip for default owner account
+      const isValid = await verifyCodeforcesHandle(handle);
+      if (!isValid) {
+        return res.status(400).json({ message: 'Invalid Codeforces handle' });
+      }
     }
 
     const user = new User({ fullName, handle, email, password, role: 'member' });
@@ -27,6 +36,10 @@ const createUser = async (req, res) => {
 
     res.status(201).json(sanitizeUser(user));
   } catch (err) {
+    if (err.code === 11000) {
+      const field = Object.keys(err.keyPattern)[0];
+      return res.status(409).json({ message: `${field} already exists` });
+    }
     res.status(500).json({ error: err.message });
   }
 };
@@ -68,19 +81,28 @@ const updateUser = async (req, res) => {
     const user = await User.findById(id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
+    // Cannot update owner profile (except owner updating themselves)
+    if (user.role === 'owner' && requester.role !== 'owner') {
+      return res.status(403).json({ message: 'Cannot update owner profile' });
+    }
+
     // Role-based restrictions
-    if (requester.role === 'member' && requester.id !== id) {
+    if (requester.role === 'member' && requester.id !== id.toString()) {
       return res.status(403).json({ message: 'Members can only update their own profile' });
     }
     if (requester.role === 'office' && user.role !== 'member') {
       return res.status(403).json({ message: 'Office can only update members' });
     }
 
-    // CF handle validation if updated
-    if (handle && !(await verifyCodeforcesHandle(handle))) {
-      return res.status(400).json({ message: 'Invalid Codeforces handle' });
+    // Validate Codeforces handle if being updated
+    if (handle && handle !== user.handle) {
+      const isValid = await verifyCodeforcesHandle(handle);
+      if (!isValid) {
+        return res.status(400).json({ message: 'Invalid Codeforces handle' });
+      }
     }
 
+    // Update allowed fields
     if (fullName) user.fullName = fullName;
     if (handle) user.handle = handle;
     if (email) user.email = email;
@@ -88,6 +110,11 @@ const updateUser = async (req, res) => {
     await user.save();
     res.json(sanitizeUser(user));
   } catch (err) {
+    if (err.code === 11000) {
+      const field = Object.keys(err.keyPattern)[0];
+      return res.status(409).json({ message: `${field} already exists` });
+    }
+    if (err.name === 'CastError') return res.status(400).json({ message: 'Invalid user ID format' });
     res.status(500).json({ error: err.message });
   }
 };
@@ -98,17 +125,28 @@ const deleteUser = async (req, res) => {
     const { id } = req.params;
     const requester = req.user;
 
+    // Double-check owner role (role middleware should already enforce)
     if (requester.role !== 'owner') {
       return res.status(403).json({ message: 'Only owner can delete users' });
     }
 
     const user = await User.findById(id);
     if (!user) return res.status(404).json({ message: 'User not found' });
-    if (user.role === 'owner') return res.status(403).json({ message: 'Cannot delete owner' });
+    
+    // Prevent deletion of owner
+    if (user.role === 'owner') {
+      return res.status(403).json({ message: 'Cannot delete owner account' });
+    }
+
+    // Prevent owner from deleting themselves by ID
+    if (requester.id === id.toString()) {
+      return res.status(403).json({ message: 'Cannot delete your own account' });
+    }
 
     await user.deleteOne();
     res.json({ message: 'User deleted successfully' });
   } catch (err) {
+    if (err.name === 'CastError') return res.status(400).json({ message: 'Invalid user ID format' });
     res.status(500).json({ error: err.message });
   }
 };

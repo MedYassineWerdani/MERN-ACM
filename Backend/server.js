@@ -9,6 +9,7 @@ const OWNER = require('./config/owner');
 const userRoutes = require('./routes/userRoutes');
 const sessionRoutes = require('./routes/sessionRoutes');
 const authRoutes = require('./routes/authRoutes');
+const eventRoutes = require('./routes/eventRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -40,6 +41,7 @@ const startServer = async () => {
   app.use('/api/auth', authRoutes); // login route
   app.use('/api/users', userRoutes);  // user CRUD routes
   app.use('/api/sessions', sessionRoutes); // session code / presence
+  app.use('/api/events', eventRoutes); // events CRUD and discussions
 
 
   app.listen(PORT, () => {

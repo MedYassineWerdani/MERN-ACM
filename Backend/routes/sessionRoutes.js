@@ -1,22 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const userController = require('../controllers/userController');
+const { getSessionCode, markPresence } = require('../controllers/sessionController');
 const auth = require('../middlewares/auth');
 const allowRoles = require('../middlewares/roles');
 
-// CREATE → anyone (member)
-router.post('/', userController.createUser);
+// GET SESSION CODE (owner + manager only)
+router.post('/code', auth, allowRoles('owner', 'manager'), getSessionCode);
 
-// READ all → owner + office
-router.get('/', auth, allowRoles('owner', 'office'), userController.getUsers);
-
-// READ one → anyone logged in
-router.get('/:id', auth, userController.getUserById);
-
-// UPDATE → member updates self, office updates members, owner updates anyone
-router.put('/:id', auth, userController.updateUser);
-
-// DELETE → only owner
-router.delete('/:id', auth, allowRoles('owner'), userController.deleteUser);
+// MARK PRESENCE (any authenticated user)
+router.post('/presence', auth, markPresence);
 
 module.exports = router;
