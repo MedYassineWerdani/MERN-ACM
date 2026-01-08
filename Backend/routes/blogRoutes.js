@@ -6,6 +6,7 @@ const {
   getArticleById,
   updateArticle,
   deleteArticle,
+  createProblem,
   getProblems,
   getProblemById
 } = require('../controllers/blogController');
@@ -29,6 +30,9 @@ const allowRoles = require('../middlewares/roles');
 router.post('/', auth, allowRoles('manager'), createArticle);
 
 // Problems (must come before /:id to avoid route conflicts)
+// Create problem (managers only)
+router.post('/problems', auth, allowRoles('manager'), createProblem);
+
 // Get all problems with optional tag filter (authenticated users)
 router.get('/problems', auth, getProblems);
 

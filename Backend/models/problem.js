@@ -31,6 +31,11 @@ const problemSchema = new mongoose.Schema({
     type: String,
     required: true // Problem description
   },
+  author: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
   examples: [exampleSchema],
   tags: {
     type: [String],

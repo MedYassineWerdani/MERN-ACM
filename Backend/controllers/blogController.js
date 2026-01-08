@@ -313,6 +313,70 @@ const deleteArticle = async (req, res) => {
 };
 
 /**
+ * Create Problem
+ * Only managers can create problems
+ */
+const createProblem = async (req, res) => {
+  try {
+    const user = req.user; // from auth middleware
+    const { title, statement, timeLimit, memoryLimit, tags } = req.body;
+
+    // Validate required fields
+    if (!title || !statement) {
+      return res.status(400).json({
+        data: null,
+        error: 'Title and statement are required'
+      });
+    }
+
+    if (!timeLimit || !memoryLimit) {
+      return res.status(400).json({
+        data: null,
+        error: 'Time limit and memory limit are required'
+      });
+    }
+
+    // Create problem
+    const problem = new Problem({
+      title: title.trim(),
+      statement: statement.trim(),
+      timeLimit: parseInt(timeLimit),
+      memoryLimit: parseInt(memoryLimit),
+      tags: tags || [],
+      author: user.id
+    });
+
+    await problem.save();
+
+    // Populate author for response
+    await problem.populate('author');
+
+    // Sanitize response
+    const response = {
+      _id: problem._id,
+      title: problem.title,
+      statement: problem.statement,
+      timeLimit: problem.timeLimit,
+      memoryLimit: problem.memoryLimit,
+      author: sanitizeUser(problem.author),
+      tags: problem.tags,
+      createdAt: problem.createdAt,
+      updatedAt: problem.updatedAt
+    };
+
+    res.status(201).json({
+      data: response,
+      error: null
+    });
+  } catch (err) {
+    res.status(500).json({
+      data: null,
+      error: err.message
+    });
+  }
+};
+
+/**
  * Get all problems with optional tag filtering
  */
 const getProblems = async (req, res) => {
@@ -379,6 +443,7 @@ module.exports = {
   getArticleById,
   updateArticle,
   deleteArticle,
+  createProblem,
   getProblems,
   getProblemById
 };
