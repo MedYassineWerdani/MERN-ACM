@@ -72,6 +72,7 @@ const getAllEvents = async (req, res) => {
       .populate('createdBy', 'fullName handle')
       .populate('registeredUsers', 'fullName handle')
       .populate('paidUsers', 'fullName handle')
+      .populate('userInterests.userId', 'fullName handle')
       .populate('discussions.author', 'fullName handle');
 
     res.json({
@@ -95,6 +96,7 @@ const getEventById = async (req, res) => {
       .populate('createdBy', 'fullName handle')
       .populate('registeredUsers', 'fullName handle')
       .populate('paidUsers', 'fullName handle')
+      .populate('userInterests.userId', 'fullName handle')
       .populate('discussions.author', 'fullName handle');
 
     if (!event) {
@@ -318,6 +320,94 @@ const markPayment = async (req, res) => {
     if (err.name === 'CastError') {
       return res.status(400).json({ message: 'Invalid event ID format' });
     }
+    res.status(500).json({ error: err.message });
+  }
+};
+
+/**
+ * Update user interest status for an event
+ * Any authenticated user can set their interest
+ * POST /events/:id/interest
+ * Body: { status: 'interested' | 'not_interested' | 'going' | null }
+ */
+const updateEventInterest = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const userId = req.user.id;
+
+    // Validate status
+    const validStatuses = ['interested', 'not_interested', 'going', null];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ 
+        message: 'Invalid status. Must be one of: interested, not_interested, going, or null to remove interest' 
+      });
+    }
+
+    const event = await Event.findById(id);
+    if (!event) {
+      return res.status(404).json({ message: 'Event not found' });
+    }
+
+    // Update user interest status
+    event.updateUserInterestStatus(userId, status);
+    await event.save();
+
+    // Get updated interest counts
+    const interestCounts = event.getInterestCounts();
+    const userStatus = event.getUserInterestStatus(userId);
+
+    res.json({
+      message: status ? `Interest updated to ${status}` : 'Interest removed',
+      userStatus: userStatus,
+      interestCounts: interestCounts
+    });
+  } catch (err) {
+    if (err.name === 'CastError') {
+      return res.status(400).json({ message: 'Invalid event ID format' });
+    }
+    res.status(500).json({ error: err.message });
+  }
+};
+
+/**
+ * Get all events with detailed interest information
+ * For office dashboard to see who is interested in which events
+ * GET /events/admin/interest-summary
+ */
+const getEventInterestSummary = async (req, res) => {
+  try {
+    const events = await Event.find()
+      .populate('userInterests.userId', 'fullName handle')
+      .populate('createdBy', 'fullName')
+      .sort({ startDate: 1 });
+
+    const eventSummary = events.map(event => {
+      const interestedUsers = event.userInterests.filter(ui => ui.status === 'interested');
+      const goingUsers = event.userInterests.filter(ui => ui.status === 'going');
+      const notInterestedUsers = event.userInterests.filter(ui => ui.status === 'not_interested');
+
+      return {
+        _id: event._id,
+        name: event.name,
+        startDate: event.startDate,
+        endDate: event.endDate,
+        location: event.location,
+        createdBy: event.createdBy,
+        interested: interestedUsers,
+        going: goingUsers,
+        notInterested: notInterestedUsers,
+        interestCounts: {
+          interested: interestedUsers.length,
+          going: goingUsers.length,
+          notInterested: notInterestedUsers.length,
+          total: event.userInterests.length
+        }
+      };
+    });
+
+    res.json({ data: eventSummary });
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
@@ -564,6 +654,8 @@ module.exports = {
   registerForEvent,
   unregisterFromEvent,
   markPayment,
+  updateEventInterest,
+  getEventInterestSummary,
   postDiscussion,
   editDiscussion,
   deleteDiscussion,

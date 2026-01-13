@@ -22,6 +22,13 @@ router.post('/', auth, allowRoles('owner', 'office', 'manager'), eventController
 router.get('/', auth, eventController.getAllEvents);
 
 /**
+ * GET /events/admin/interest-summary
+ * Get all events with detailed interest information (for office dashboard)
+ * Protected: office only
+ */
+router.get('/admin/interest-summary', auth, allowRoles('office'), eventController.getEventInterestSummary);
+
+/**
  * GET /events/:id
  * Get event details by ID
  * Protected: any authenticated user
@@ -64,6 +71,14 @@ router.delete('/:id/register', auth, eventController.unregisterFromEvent);
  * Protected: any authenticated user
  */
 router.post('/:id/payment', auth, eventController.markPayment);
+
+/**
+ * POST /events/:id/interest
+ * Update user interest status for an event
+ * Body: { status: 'interested' | 'not_interested' | 'going' | null }
+ * Protected: any authenticated user
+ */
+router.post('/:id/interest', auth, eventController.updateEventInterest);
 
 // ============ DISCUSSION/FORUM ROUTES ============
 

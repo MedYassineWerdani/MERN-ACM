@@ -135,3 +135,60 @@ export const getProblems = async (tag = null) => {
     return { error: error.message };
   }
 };
+
+// Update event interest status
+export const updateEventInterest = async (eventId, status) => {
+  try {
+    const response = await fetch(`${API_URL}/events/${eventId}/interest`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getToken()}`
+      },
+      body: JSON.stringify({ status })
+    });
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    return { error: error.message };
+  }
+};
+
+// Get members with attendance counts (office dashboard)
+export const getMembersWithAttendance = async () => {
+  try {
+    const response = await fetch(`${API_URL}/users/dashboard/members`, {
+      headers: { 'Authorization': `Bearer ${getToken()}` }
+    });
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    return { error: error.message };
+  }
+};
+
+// Get managers with attendance counts (office dashboard)
+export const getManagersWithAttendance = async () => {
+  try {
+    const response = await fetch(`${API_URL}/users/dashboard/managers`, {
+      headers: { 'Authorization': `Bearer ${getToken()}` }
+    });
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    return { error: error.message };
+  }
+};
+
+// Get event interest summary (office dashboard)
+export const getEventInterestSummary = async () => {
+  try {
+    const response = await fetch(`${API_URL}/events/admin/interest-summary`, {
+      headers: { 'Authorization': `Bearer ${getToken()}` }
+    });
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    return { error: error.message };
+  }
+};

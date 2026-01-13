@@ -1,4 +1,4 @@
-import '../styles/shared.css';
+import '../../styles/shared.css';
 
 export function ArticleModal({ article, onClose }) {
   if (!article) return null;

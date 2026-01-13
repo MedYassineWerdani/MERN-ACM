@@ -1,4 +1,5 @@
 const User = require('../models/user');
+const Event = require('../models/event');
 const OWNER = require('../config/owner');
 const { sanitizeUser } = require('../services/sanitizeUser');
 const { verifyCodeforcesHandle } = require('../services/codeforcesService');
@@ -151,4 +152,64 @@ const deleteUser = async (req, res) => {
   }
 };
 
-module.exports = { createUser, getUsers, getUserById, updateUser, deleteUser };
+// GET MEMBERS WITH ATTENDANCE COUNT (for office dashboard)
+const getMembersWithAttendance = async (req, res) => {
+  try {
+    const members = await User.find({ role: 'member' }).select('-password');
+    
+    // Get all events and count attendance for each member
+    const events = await Event.find().populate('attendedUsers');
+    
+    const membersWithAttendance = members.map(member => {
+      const attendanceCount = events.reduce((count, event) => {
+        return count + (event.hasUserAttended(member._id) ? 1 : 0);
+      }, 0);
+      
+      return {
+        ...member.toObject(),
+        attendanceCount
+      };
+    });
+
+    // Sort by attendance count descending
+    membersWithAttendance.sort((a, b) => b.attendanceCount - a.attendanceCount);
+
+    res.json({
+      data: membersWithAttendance
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// GET MANAGERS WITH ATTENDANCE COUNT (for office dashboard)
+const getManagersWithAttendance = async (req, res) => {
+  try {
+    const managers = await User.find({ role: 'manager' }).select('-password');
+    
+    // Get all events and count attendance for each manager
+    const events = await Event.find().populate('attendedUsers');
+    
+    const managersWithAttendance = managers.map(manager => {
+      const attendanceCount = events.reduce((count, event) => {
+        return count + (event.hasUserAttended(manager._id) ? 1 : 0);
+      }, 0);
+      
+      return {
+        ...manager.toObject(),
+        attendanceCount
+      };
+    });
+
+    // Sort by attendance count descending
+    managersWithAttendance.sort((a, b) => b.attendanceCount - a.attendanceCount);
+
+    res.json({
+      data: managersWithAttendance
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+module.exports = { createUser, getUsers, getUserById, updateUser, deleteUser, getMembersWithAttendance, getManagersWithAttendance };

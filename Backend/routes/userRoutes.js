@@ -7,6 +7,12 @@ const allowRoles = require('../middlewares/roles');
 // CREATE USER (public signup for members only)
 router.post('/', userController.createUser);
 
+// GET MEMBERS WITH ATTENDANCE (office only) - MUST be before /:id route
+router.get('/dashboard/members', auth, allowRoles('office'), userController.getMembersWithAttendance);
+
+// GET MANAGERS WITH ATTENDANCE (office only) - MUST be before /:id route
+router.get('/dashboard/managers', auth, allowRoles('office'), userController.getManagersWithAttendance);
+
 // GET ALL USERS (owner + office only)
 router.get('/', auth, allowRoles('owner', 'office'), userController.getUsers);
 

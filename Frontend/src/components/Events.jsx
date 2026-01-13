@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getEvents } from '../api';
+import { getEvents, updateEventInterest, getCurrentUser } from '../api';
 
 function Events() {
   const [events, setEvents] = useState([]);
@@ -66,7 +66,7 @@ function Events() {
           </h3>
           <div>
             {groupedEvents.current.map(event => (
-              <EventCard key={event._id} event={event} status="current" />
+              <EventCard key={event._id} event={event} status="current" onInterestUpdate={fetchEvents} />
             ))}
           </div>
         </div>
@@ -80,7 +80,7 @@ function Events() {
           </h3>
           <div>
             {groupedEvents.upcoming.map(event => (
-              <EventCard key={event._id} event={event} status="upcoming" />
+              <EventCard key={event._id} event={event} status="upcoming" onInterestUpdate={fetchEvents} />
             ))}
           </div>
         </div>
@@ -94,7 +94,7 @@ function Events() {
           </h3>
           <div>
             {groupedEvents.past.map(event => (
-              <EventCard key={event._id} event={event} status="past" />
+              <EventCard key={event._id} event={event} status="past" onInterestUpdate={fetchEvents} />
             ))}
           </div>
         </div>
@@ -109,12 +109,91 @@ function Events() {
   );
 }
 
-function EventCard({ event, status }) {
+function EventCard({ event, status, onInterestUpdate }) {
+  const [userInterest, setUserInterest] = useState(null);
+  const [interestCounts, setInterestCounts] = useState({
+    interested: 0,
+    not_interested: 0,
+    going: 0
+  });
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  // Initialize from event data
+  useEffect(() => {
+    const currentUser = getCurrentUser();
+    
+    if (event.userInterests && Array.isArray(event.userInterests) && currentUser) {
+      // Find current user's interest from the list by comparing user IDs
+      const currentUserInterest = event.userInterests.find(ui => 
+        (typeof ui.userId === 'string' ? ui.userId : ui.userId?._id) === currentUser._id
+      );
+      if (currentUserInterest) {
+        setUserInterest(currentUserInterest.status);
+      } else {
+        setUserInterest(null);
+      }
+    }
+    
+    // Calculate interest counts
+    if (event.userInterests && Array.isArray(event.userInterests)) {
+      const counts = {
+        interested: event.userInterests.filter(ui => ui.status === 'interested').length,
+        not_interested: event.userInterests.filter(ui => ui.status === 'not_interested').length,
+        going: event.userInterests.filter(ui => ui.status === 'going').length
+      };
+      setInterestCounts(counts);
+    }
+  }, [event]);
+
+  const handleInterestClick = async (status) => {
+    if (isUpdating) return;
+    
+    setIsUpdating(true);
+    
+    // Toggle: if same status is clicked, remove interest
+    const newStatus = userInterest === status ? null : status;
+    
+    const result = await updateEventInterest(event._id, newStatus);
+    
+    if (result.error) {
+      console.error('Error updating interest:', result.error);
+    } else {
+      setUserInterest(result.userStatus);
+      setInterestCounts(result.interestCounts);
+      // Optionally refresh all events
+      if (onInterestUpdate) {
+        onInterestUpdate();
+      }
+    }
+    
+    setIsUpdating(false);
+  };
+
   const statusColor = {
     upcoming: '#3b82f6',
     current: '#10b981',
     past: '#6b7280'
   }[status];
+
+  const getButtonStyle = (btnStatus) => {
+    const isActive = userInterest === btnStatus;
+    return {
+      padding: '6px 12px',
+      borderRadius: '4px',
+      border: 'none',
+      fontSize: '12px',
+      fontWeight: '500',
+      cursor: isUpdating ? 'not-allowed' : 'pointer',
+      opacity: isUpdating ? 0.6 : 1,
+      backgroundColor: isActive ? (
+        btnStatus === 'interested' ? '#10b981' :
+        btnStatus === 'not_interested' ? '#ef4444' :
+        '#f59e0b'
+      ) : '#e5e7eb',
+      color: isActive ? 'white' : '#374151',
+      transition: 'all 0.2s'
+    };
+  };
 
   return (
     <div style={{
@@ -162,7 +241,8 @@ function EventCard({ event, status }) {
         gap: '20px',
         fontSize: '13px',
         color: '#6b7280',
-        marginTop: '10px'
+        marginTop: '10px',
+        marginBottom: '10px'
       }}>
         <span>
           📅 Start: {new Date(event.startDate).toLocaleDateString()}
@@ -182,11 +262,59 @@ function EventCard({ event, status }) {
           backgroundColor: '#fef3c7',
           borderRadius: '4px',
           fontSize: '13px',
-          color: '#92400e'
+          color: '#92400e',
+          marginBottom: '10px'
         }}>
           💰 Fees: ${event.fees}
         </div>
       )}
+
+      {/* Interest Section */}
+      <div style={{
+        marginTop: '12px',
+        padding: '10px',
+        backgroundColor: '#f9fafb',
+        borderRadius: '4px',
+        borderTop: '1px solid #e5e7eb'
+      }}>
+        <div style={{
+          display: 'flex',
+          gap: '8px',
+          alignItems: 'center',
+          marginBottom: '8px'
+        }}>
+          <span style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>
+            Show your interest:
+          </span>
+        </div>
+        <div style={{
+          display: 'flex',
+          gap: '8px',
+          flexWrap: 'wrap'
+        }}>
+          <button
+            onClick={() => handleInterestClick('interested')}
+            style={getButtonStyle('interested')}
+            disabled={isUpdating}
+          >
+            👍 Interested ({interestCounts.interested})
+          </button>
+          <button
+            onClick={() => handleInterestClick('going')}
+            style={getButtonStyle('going')}
+            disabled={isUpdating}
+          >
+            ✓ Going ({interestCounts.going})
+          </button>
+          <button
+            onClick={() => handleInterestClick('not_interested')}
+            style={getButtonStyle('not_interested')}
+            disabled={isUpdating}
+          >
+            👎 Not Interested ({interestCounts.not_interested})
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

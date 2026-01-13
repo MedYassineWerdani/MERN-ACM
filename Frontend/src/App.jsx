@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import LoginSignup from './components/LoginSignup';
 import MemberDashboard from './components/MemberDashboard';
 import ManagerDashboard from './components/ManagerDashboard';
+import OfficeDashboard from './components/OfficeDashboard';
 import { getCurrentUser, logoutUser } from './api';
 
 function App() {
@@ -45,7 +46,11 @@ function App() {
     return <ManagerDashboard user={user} onLogout={handleLogout} />;
   }
 
-  if (user.role === 'member' || user.role === 'office') {
+  if (user.role === 'office') {
+    return <OfficeDashboard user={user} onLogout={handleLogout} />;
+  }
+
+  if (user.role === 'member') {
     return <MemberDashboard user={user} onLogout={handleLogout} />;
   }
 

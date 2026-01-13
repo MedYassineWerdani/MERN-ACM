@@ -1,4 +1,4 @@
-import '../styles/shared.css';
+import '../../styles/shared.css';
 
 export function ProblemModal({ problem, onClose }) {
   if (!problem) return null;

@@ -134,12 +134,12 @@ function MemberDashboard({ user, onLogout }) {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
           <section className="section">
             <h3 className="section-title">📅 Upcoming Events ({upcomingEvents.length})</h3>
-            <EventsList events={upcomingEvents} title="Upcoming" />
+            <EventsList events={upcomingEvents} title="Upcoming" onInterestUpdate={fetchData} />
           </section>
 
           <section className="section">
             <h3 className="section-title">📜 Past Events ({pastEvents.length})</h3>
-            <EventsList events={pastEvents} title="Past" />
+            <EventsList events={pastEvents} title="Past" onInterestUpdate={fetchData} />
           </section>
         </div>
 
